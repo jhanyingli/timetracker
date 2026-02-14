@@ -3,7 +3,9 @@
    Dark glassmorphism theme, Inter font
    ======================================== */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -61,8 +63,8 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   background-image:
-    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(99,102,241,0.12), transparent),
-    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(6,182,212,0.06), transparent);
+    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(99, 102, 241, 0.12), transparent),
+    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(6, 182, 212, 0.06), transparent);
 }
 
 /* ---- App Shell ---- */
@@ -105,10 +107,73 @@ body {
   background-clip: text;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
 .header-date {
   font-size: 0.85rem;
   color: var(--text-secondary);
   font-weight: 500;
+}
+
+/* Time Format Toggle */
+.time-format-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.format-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  transition: color 0.25s var(--ease);
+}
+
+.format-label.active {
+  color: var(--accent-hover);
+}
+
+.toggle-track {
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.25);
+  border: 1px solid var(--border-color);
+  position: relative;
+  transition: background 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+.toggle-track:hover {
+  border-color: var(--border-glow);
+}
+
+.toggle-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+.time-format-toggle.is-12h .toggle-thumb {
+  transform: translateX(16px);
+}
+
+.time-format-toggle.is-12h .toggle-track {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: var(--accent);
 }
 
 /* ---- Layout ---- */
@@ -211,6 +276,7 @@ body {
   background: var(--green-glow);
   color: var(--green);
 }
+
 .status-badge.running .status-dot {
   background: var(--green);
   box-shadow: 0 0 8px var(--green-glow);
@@ -221,6 +287,7 @@ body {
   background: var(--yellow-glow);
   color: var(--yellow);
 }
+
 .status-badge.paused .status-dot {
   background: var(--yellow);
   box-shadow: 0 0 8px var(--yellow-glow);
@@ -230,14 +297,24 @@ body {
   background: var(--red-glow);
   color: var(--red);
 }
+
 .status-badge.stopped .status-dot {
   background: var(--red);
   box-shadow: 0 0 8px var(--red-glow);
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.4); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.4);
+  }
 }
 
 /* Timer Display */
@@ -300,44 +377,57 @@ body {
   color: #fff;
   box-shadow: 0 2px 12px var(--accent-glow);
 }
+
 .btn-primary:hover {
   background: var(--accent-hover);
   box-shadow: 0 4px 20px var(--accent-glow);
   transform: translateY(-1px);
 }
-.btn-primary:active { transform: translateY(0); }
+
+.btn-primary:active {
+  transform: translateY(0);
+}
 
 .btn-warning {
   background: var(--yellow);
   color: #1a1a1a;
   box-shadow: 0 2px 12px var(--yellow-glow);
 }
+
 .btn-warning:hover {
   background: #fbbf24;
   box-shadow: 0 4px 20px var(--yellow-glow);
   transform: translateY(-1px);
 }
-.btn-warning:active { transform: translateY(0); }
+
+.btn-warning:active {
+  transform: translateY(0);
+}
 
 .btn-danger {
   background: var(--red);
   color: #fff;
   box-shadow: 0 2px 12px var(--red-glow);
 }
+
 .btn-danger:hover {
   background: #f87171;
   box-shadow: 0 4px 20px var(--red-glow);
   transform: translateY(-1px);
 }
-.btn-danger:active { transform: translateY(0); }
+
+.btn-danger:active {
+  transform: translateY(0);
+}
 
 .btn-ghost {
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--border-color);
 }
+
 .btn-ghost:hover {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
 }
 
@@ -346,12 +436,16 @@ body {
   color: var(--red);
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
+
 .btn-outline-danger:hover {
   background: var(--red-glow);
   border-color: var(--red);
 }
 
-.btn-full { width: 100%; justify-content: center; }
+.btn-full {
+  width: 100%;
+  justify-content: center;
+}
 
 .btn-icon {
   display: inline-flex;
@@ -373,11 +467,13 @@ body {
 }
 
 .btn-icon:hover {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text-primary);
 }
 
-.hidden { display: none !important; }
+.hidden {
+  display: none !important;
+}
 
 /* ---- Cumulative Badge ---- */
 .cumulative-badge {
@@ -415,8 +511,8 @@ body {
   padding: 0.6rem 0;
 }
 
-.log-row + .log-row {
-  border-top: 1px solid rgba(255,255,255,0.04);
+.log-row+.log-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .log-label {
@@ -457,8 +553,13 @@ body {
   opacity: 1;
 }
 
-.log-start .log-label { color: var(--green); }
-.log-end .log-label { color: var(--red); }
+.log-start .log-label {
+  color: var(--green);
+}
+
+.log-end .log-label {
+  color: var(--red);
+}
 
 .log-total .log-value {
   font-size: 1rem;
@@ -478,7 +579,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0;
-  border-top: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .break-label {
@@ -548,11 +649,11 @@ body {
   cursor: pointer;
   transition: all 0.2s var(--ease);
   border: 1px solid transparent;
-  background: rgba(255,255,255,0.02);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .day-pill:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   border-color: var(--border-color);
 }
 
@@ -611,7 +712,7 @@ body {
 }
 
 .summary-item {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   border-radius: var(--radius);
   padding: 0.75rem;
   text-align: center;
@@ -653,8 +754,13 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .modal {
@@ -668,8 +774,15 @@ body {
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .modal-header {
@@ -733,7 +846,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0.45rem 0;
-  border-top: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .segment-label {
@@ -764,7 +877,19 @@ body {
 }
 
 /* ---- Scrollbar ---- */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--border-glow); }
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-glow);
+}

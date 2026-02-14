@@ -7,16 +7,18 @@
 
   // ---- Constants ----
   const STORAGE_KEY = 'timetracker_data';
+  const FORMAT_KEY = 'timetracker_format';
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const FULL_DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   // ---- State ----
   let state = {
     status: 'idle', // idle | running | paused | stopped
-    currentSegmentStart: null, // ISO timestamp when current segment started
+    currentSegmentStart: null, // "HH:MM:SS" when current segment started
     timerInterval: null,
     selectedDate: todayStr(),
     selectedWeekMonday: getMondayOfWeek(todayStr()),
+    use12h: loadFormat(), // true = 12h (AM/PM), false = 24h
   };
 
   // ---- DOM refs ----
@@ -56,6 +58,9 @@
   const confirmYes = $('confirmYes');
   const confirmCancel = $('confirmCancel');
   const confirmClose = $('confirmClose');
+
+  // Toggle ref
+  const timeFormatToggle = $('timeFormatToggle');
 
   let editContext = null; // { date, type, index, subfield }
 
@@ -117,6 +122,70 @@
     const mStr = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const sStr = sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     return `${mStr} – ${sStr}`;
+  }
+
+  // ---- Time Format Functions ----
+
+  function loadFormat() {
+    try {
+      return localStorage.getItem(FORMAT_KEY) === '12h';
+    } catch {
+      return false;
+    }
+  }
+
+  function saveFormat() {
+    localStorage.setItem(FORMAT_KEY, state.use12h ? '12h' : '24h');
+  }
+
+  /** Convert "HH:MM" (24h) to display string based on current format */
+  function displayTime(time24) {
+    if (!time24 || time24 === '—') return '—';
+    if (!state.use12h) return time24;
+
+    const [h, m] = time24.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+  }
+
+  /** Parse user input from either format back to "HH:MM" (24h) for storage */
+  function parseTimeInput(input) {
+    if (!input) return null;
+    input = input.trim().toUpperCase();
+
+    // Try 12h format: "1:30 PM", "12:00 AM", "3:45PM", etc.
+    const match12 = input.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/);
+    if (match12) {
+      let h = parseInt(match12[1]);
+      const m = parseInt(match12[2]);
+      const period = match12[3];
+      if (h < 1 || h > 12 || m < 0 || m > 59) return null;
+      if (period === 'AM' && h === 12) h = 0;
+      else if (period === 'PM' && h !== 12) h += 12;
+      return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+
+    // Try 24h format: "14:30", "09:00"
+    const match24 = input.match(/^(\d{1,2}):(\d{2})$/);
+    if (match24) {
+      const h = parseInt(match24[1]);
+      const m = parseInt(match24[2]);
+      if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+      return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+
+    return null;
+  }
+
+  function updateToggleUI() {
+    const labels = timeFormatToggle.querySelectorAll('.format-label');
+    labels.forEach(label => {
+      label.classList.toggle('active', label.dataset.format === (state.use12h ? '12h' : '24h'));
+    });
+    timeFormatToggle.classList.toggle('is-12h', state.use12h);
+    // Update placeholder in modal
+    modalTimeInput.placeholder = state.use12h ? 'h:mm AM/PM' : 'HH:MM';
   }
 
   // ---- Data Persistence ----
@@ -268,7 +337,6 @@
     state.currentSegmentStart = null;
 
     stopTimerTick();
-    // show final elapsed
     timerDisplay.textContent = formatElapsed(getElapsedSeconds());
     updateUI();
   }
@@ -318,6 +386,7 @@
     updateDailyLog();
     updateWeekPanel();
     updateHeader();
+    updateToggleUI();
   }
 
   function updateStatus() {
@@ -359,7 +428,6 @@
         btnStop.classList.remove('hidden');
         break;
       case 'stopped':
-        // Can log on again for a new session if needed
         btnLogOn.classList.remove('hidden');
         break;
     }
@@ -382,17 +450,19 @@
     logEmpty.classList.add('hidden');
     logEntries.classList.remove('hidden');
 
-    // Start time
-    logStartTime.textContent = day.startTime || '—';
+    // Start time — display in chosen format
+    logStartTime.textContent = displayTime(day.startTime) || '—';
     logStartTime.dataset.field = 'startTime';
     logStartTime.dataset.date = dateStr;
+    logStartTime.dataset.raw = day.startTime || '';
 
     // End time
     if (day.endTime) {
       logEndRow.classList.remove('hidden');
-      logEndTime.textContent = day.endTime;
+      logEndTime.textContent = displayTime(day.endTime);
       logEndTime.dataset.field = 'endTime';
       logEndTime.dataset.date = dateStr;
+      logEndTime.dataset.raw = day.endTime;
     } else {
       logEndRow.classList.add('hidden');
     }
@@ -406,17 +476,14 @@
       row.innerHTML = `
         <span class="break-label">Break ${i + 1}</span>
         <span class="break-times">
-          <span class="editable" data-date="${dateStr}" data-field="breakStart" data-index="${i}">${brk.start}</span>
+          <span class="editable" data-date="${dateStr}" data-field="breakStart" data-index="${i}" data-raw="${brk.start}">${displayTime(brk.start)}</span>
           <span>→</span>
-          <span class="editable" data-date="${dateStr}" data-field="breakEnd" data-index="${i}">${brk.end}</span>
+          <span class="editable" data-date="${dateStr}" data-field="breakEnd" data-index="${i}" data-raw="${brk.end}">${displayTime(brk.end)}</span>
           <span class="break-duration">${minutesToHM(brk.duration)}</span>
         </span>
       `;
       breaksContainer.appendChild(row);
     });
-
-    // Also show work segments for clarity
-    // (segments between breaks are implicit from start/breaks/end)
 
     // Total
     const totalMins = calcDayMinutes(day);
@@ -447,11 +514,8 @@
 
       // If today and running, add live elapsed
       if (isToday && state.status === 'running') {
-        // We'll just show the saved + running via calcDayMinutes approach
-        // but calcDayMinutes only counts closed segments, so let's add running time
         const secs = getElapsedSeconds();
         const liveMins = Math.floor(secs / 60);
-        // Subtract the closed-segment minutes to avoid double counting
         const closedMins = day ? calcDayMinutes(day) : 0;
         weekTotalMins += (liveMins - closedMins);
       }
@@ -480,12 +544,14 @@
 
   // ---- Editing ----
 
-  function openEditModal(label, currentValue, context) {
+  function openEditModal(label, rawValue, context) {
     editContext = context;
     modalLabel.textContent = label;
-    modalTimeInput.value = currentValue || '';
+    // Show in whichever format is active
+    modalTimeInput.value = displayTime(rawValue);
     editModal.classList.remove('hidden');
     modalTimeInput.focus();
+    modalTimeInput.select();
   }
 
   function closeEditModal() {
@@ -495,8 +561,15 @@
 
   function saveEdit() {
     if (!editContext) return;
-    const newValue = modalTimeInput.value;
-    if (!newValue) { closeEditModal(); return; }
+    const rawInput = modalTimeInput.value;
+    const newValue = parseTimeInput(rawInput);
+
+    if (!newValue) {
+      // Flash invalid
+      modalTimeInput.style.borderColor = 'var(--red)';
+      setTimeout(() => { modalTimeInput.style.borderColor = ''; }, 800);
+      return;
+    }
 
     const { date, field, index } = editContext;
     const day = getDayData(date);
@@ -504,29 +577,19 @@
 
     if (field === 'startTime') {
       day.startTime = newValue;
-      // Also update the first segment start
       if (day.segments.length > 0) {
         day.segments[0].start = newValue;
       }
     } else if (field === 'endTime') {
       day.endTime = newValue;
-      // Also update the last segment end
       if (day.segments.length > 0) {
         day.segments[day.segments.length - 1].end = newValue;
       }
     } else if (field === 'breakStart') {
-      // breakStart at index i means the end of segment i and start of break
-      // The break starts at segments[index].end => we update segments[index].end? No...
-      // Break i is the gap between segment[i] end and segment[i+1] start
-      // breakStart edits segment[i].end
-      // Wait, actually breakStart = segment[i].end (prev segment end)
-      // but the user sees it as when the break started.
-      // Editing breakStart means changing when segment i ended (which is when break started)
       if (index < day.segments.length) {
         day.segments[index].end = newValue;
       }
     } else if (field === 'breakEnd') {
-      // breakEnd at index i = segment[i+1].start
       if (index + 1 < day.segments.length) {
         day.segments[index + 1].start = newValue;
       }
@@ -535,8 +598,7 @@
     setDayData(date, day);
     closeEditModal();
 
-    // If editing today and timer is still relevant, recalc
-    if (date === todayStr() && (state.status === 'running')) {
+    if (date === todayStr() && state.status === 'running') {
       timerDisplay.textContent = formatElapsed(getElapsedSeconds());
     }
 
@@ -560,7 +622,6 @@
       deleteDayData(dateStr);
     }
 
-    // If clearing current week and timer was running, reset state
     const today = todayStr();
     const currentMonday = getMondayOfWeek(today);
     if (monday === currentMonday) {
@@ -577,9 +638,8 @@
   // ---- Event Listeners ----
 
   btnLogOn.addEventListener('click', () => {
-    // If stopped, treat as starting fresh new session (add to existing day)
     if (state.status === 'stopped') {
-      state.status = 'idle'; // reset so doLogOn works normally
+      state.status = 'idle';
     }
     doLogOn();
   });
@@ -591,7 +651,6 @@
   // Week navigation
   $('btnPrevWeek').addEventListener('click', () => {
     state.selectedWeekMonday = addDays(state.selectedWeekMonday, -7);
-    // Select the Monday of that week
     state.selectedDate = state.selectedWeekMonday;
     updateUI();
   });
@@ -613,7 +672,6 @@
   modalCancel.addEventListener('click', closeEditModal);
   modalClose.addEventListener('click', closeEditModal);
 
-  // Handle enter in modal
   modalTimeInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') saveEdit();
     if (e.key === 'Escape') closeEditModal();
@@ -627,6 +685,13 @@
     if (e.target === confirmModal) closeConfirmModal();
   });
 
+  // Time format toggle
+  timeFormatToggle.addEventListener('click', () => {
+    state.use12h = !state.use12h;
+    saveFormat();
+    updateUI();
+  });
+
   // Editable time clicks (delegated)
   document.addEventListener('click', (e) => {
     const el = e.target.closest('.editable');
@@ -635,6 +700,21 @@
     const field = el.dataset.field;
     const date = el.dataset.date || state.selectedDate;
     const index = el.dataset.index !== undefined ? parseInt(el.dataset.index) : null;
+    const raw = el.dataset.raw || el.textContent.trim();
+
+    // Determine the 24h raw value to pass to the modal
+    let rawValue = raw;
+    // If raw is already in data-raw, use it; otherwise parse from display
+    if (el.dataset.raw) {
+      rawValue = el.dataset.raw;
+    } else {
+      // Try to get from day data
+      const day = getDayData(date);
+      if (day) {
+        if (field === 'startTime') rawValue = day.startTime;
+        else if (field === 'endTime') rawValue = day.endTime;
+      }
+    }
 
     let label = 'Edit Time';
     if (field === 'startTime') label = 'Edit Start Time';
@@ -642,7 +722,7 @@
     else if (field === 'breakStart') label = `Edit Break ${index + 1} Start`;
     else if (field === 'breakEnd') label = `Edit Break ${index + 1} End`;
 
-    openEditModal(label, el.textContent.trim(), { date, field, index });
+    openEditModal(label, rawValue, { date, field, index });
   });
 
   // ---- Restore State on Load ----
@@ -655,7 +735,6 @@
       const lastSeg = day.segments[day.segments.length - 1];
 
       if (!lastSeg.end) {
-        // Was running when page closed — resume
         state.status = 'running';
         state.currentSegmentStart = lastSeg.start + ':00';
         startTimerTick();
@@ -663,7 +742,6 @@
         state.status = 'stopped';
         timerDisplay.textContent = formatElapsed(calcDayMinutes(day) * 60);
       } else {
-        // Segments exist, last is closed, but no endTime → was paused
         state.status = 'paused';
         timerDisplay.textContent = formatElapsed(calcDayMinutes(day) * 60);
       }
