@@ -249,6 +249,52 @@ export default function TimeTracker() {
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, [status, getElapsedSeconds]);
 
+    // ---- Keyboard shortcuts ----
+    useEffect(() => {
+        function handleKeyDown(e) {
+            // Skip if modal is open or user is typing in an input
+            if (editModal || confirmModal) return;
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+            const key = e.key.toLowerCase();
+
+            switch (key) {
+                case ' ': // Space — Start / Resume (prevent page scroll)
+                    e.preventDefault();
+                // fallthrough
+                case 's': // Start / Resume
+                    if (status === 'idle' || status === 'stopped') handleLogOn();
+                    else if (status === 'paused') handleResume();
+                    break;
+                case 'p': // Pause
+                    if (status === 'running') handlePause();
+                    break;
+                case 'x': // Stop
+                    if (status === 'running' || status === 'paused') handleStop();
+                    break;
+                case 't': // Toggle time format
+                    toggleFormat();
+                    break;
+                case 'arrowleft': // Previous week
+                    prevWeek();
+                    break;
+                case 'arrowright': // Next week
+                    nextWeek();
+                    break;
+                default:
+                    // Number keys 1-7 for day selection
+                    if (key >= '1' && key <= '7') {
+                        const dayIndex = parseInt(key) - 1;
+                        selectDay(addDays(selectedWeekMonday, dayIndex));
+                    }
+                    break;
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }); // Re-attach on every render to capture latest state
+
     // ---- Actions ----
     async function handleLogOn() {
         const today = todayStr();
@@ -428,7 +474,7 @@ export default function TimeTracker() {
                             {(status === 'idle' || status === 'stopped') && (
                                 <button className="btn btn-primary" onClick={handleLogOn}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                                    Log On
+                                    Start
                                 </button>
                             )}
                             {status === 'running' && (
