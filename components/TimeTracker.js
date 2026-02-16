@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Summary from './Summary';
 
 // ---- Constants ----
 const FULL_DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -156,6 +157,8 @@ export default function TimeTracker() {
     const [editError, setEditError] = useState(false);
     const [confirmModal, setConfirmModal] = useState(false);
 
+    const [activeTab, setActiveTab] = useState('timer'); // 'timer' | 'summary'
+
     const intervalRef = useRef(null);
     const editInputRef = useRef(null);
 
@@ -282,9 +285,13 @@ export default function TimeTracker() {
                 case 'arrowright': // Next week
                     nextWeek();
                     break;
+                case 'tab': // Switch tabs
+                    e.preventDefault();
+                    setActiveTab(prev => prev === 'timer' ? 'summary' : 'timer');
+                    break;
                 default:
-                    // Number keys 1-7 for day selection
-                    if (key >= '1' && key <= '7') {
+                    // Number keys 1-7 for day selection (only in timer tab)
+                    if (activeTab === 'timer' && key >= '1' && key <= '7') {
                         const dayIndex = parseInt(key) - 1;
                         selectDay(addDays(selectedWeekMonday, dayIndex));
                     }
@@ -460,163 +467,180 @@ export default function TimeTracker() {
                 </div>
             </header>
 
-            <main className="main-layout">
-                {/* Left: Timer + Log */}
-                <section className="timer-section">
-                    <div className={`card timer-card ${status === 'running' ? 'active' : ''}`}>
-                        <div className={`status-badge ${status}`}>
-                            <span className="status-dot" />
-                            <span className="status-text">{statusTextMap[status]}</span>
-                        </div>
-                        <div className="timer-display">{timerText}</div>
-                        <div className="timer-sub">{subTextMap[status]}</div>
-                        <div className="timer-controls">
-                            {(status === 'idle' || status === 'stopped') && (
-                                <button className="btn btn-primary" onClick={handleLogOn}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                                    Start
-                                </button>
-                            )}
-                            {status === 'running' && (
-                                <>
-                                    <button className="btn btn-warning" onClick={handlePause}>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
-                                        Pause
-                                    </button>
-                                    <button className="btn btn-danger" onClick={handleStop}>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /></svg>
-                                        Stop
-                                    </button>
-                                </>
-                            )}
-                            {status === 'paused' && (
-                                <>
-                                    <button className="btn btn-primary" onClick={handleResume}>
+            {/* Tab Navigation */}
+            <nav className="tab-nav">
+                <button className={`tab-btn ${activeTab === 'timer' ? 'active' : ''}`} onClick={() => setActiveTab('timer')}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                    Timer
+                </button>
+                <button className={`tab-btn ${activeTab === 'summary' ? 'active' : ''}`} onClick={() => setActiveTab('summary')}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" /></svg>
+                    Summary
+                    <span className="tab-hint">Tab</span>
+                </button>
+            </nav>
+
+            {activeTab === 'summary' ? (
+                <Summary />
+            ) : (
+                <main className="main-layout">
+                    {/* Left: Timer + Log */}
+                    <section className="timer-section">
+                        <div className={`card timer-card ${status === 'running' ? 'active' : ''}`}>
+                            <div className={`status-badge ${status}`}>
+                                <span className="status-dot" />
+                                <span className="status-text">{statusTextMap[status]}</span>
+                            </div>
+                            <div className="timer-display">{timerText}</div>
+                            <div className="timer-sub">{subTextMap[status]}</div>
+                            <div className="timer-controls">
+                                {(status === 'idle' || status === 'stopped') && (
+                                    <button className="btn btn-primary" onClick={handleLogOn}>
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                                        Resume
+                                        Start
                                     </button>
-                                    <button className="btn btn-danger" onClick={handleStop}>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /></svg>
-                                        Stop
-                                    </button>
-                                </>
-                            )}
+                                )}
+                                {status === 'running' && (
+                                    <>
+                                        <button className="btn btn-warning" onClick={handlePause}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                                            Pause
+                                        </button>
+                                        <button className="btn btn-danger" onClick={handleStop}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /></svg>
+                                            Stop
+                                        </button>
+                                    </>
+                                )}
+                                {status === 'paused' && (
+                                    <>
+                                        <button className="btn btn-primary" onClick={handleResume}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                                            Resume
+                                        </button>
+                                        <button className="btn btn-danger" onClick={handleStop}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /></svg>
+                                            Stop
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Daily Log */}
-                    <div className="card log-card">
-                        <div className="card-header">
-                            <h2>{isToday ? "Today's Log" : formatDateHeader(selectedDate)}</h2>
-                            <span className="cumulative-badge">{minutesToHM(dayMins)}</span>
-                        </div>
-                        <div className="log-content">
-                            {daySegments.length === 0 ? (
-                                <div className="log-empty">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="empty-icon">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                                    </svg>
-                                    <p>No time logged yet</p>
-                                </div>
-                            ) : (
-                                <div>
-                                    {/* Start time */}
-                                    <div className="log-row log-start">
-                                        <span className="log-label">Started</span>
-                                        <span className="log-value editable" onClick={() => openEdit('Edit Start Time', startTime, daySegments[0].id, 'seg_start')}>
-                                            {displayTime(startTime, use12h)}
-                                        </span>
+                        {/* Daily Log */}
+                        <div className="card log-card">
+                            <div className="card-header">
+                                <h2>{isToday ? "Today's Log" : formatDateHeader(selectedDate)}</h2>
+                                <span className="cumulative-badge">{minutesToHM(dayMins)}</span>
+                            </div>
+                            <div className="log-content">
+                                {daySegments.length === 0 ? (
+                                    <div className="log-empty">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="empty-icon">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                        </svg>
+                                        <p>No time logged yet</p>
                                     </div>
-
-                                    {/* Breaks */}
-                                    {breaks.map((brk, i) => (
-                                        <div key={i} className="break-row">
-                                            <span className="break-label">Break {i + 1}</span>
-                                            <span className="break-times">
-                                                <span className="editable" onClick={() => openEdit(`Edit Break ${i + 1} Start`, brk.start, daySegments[i].id, 'seg_end')}>
-                                                    {displayTime(brk.start, use12h)}
-                                                </span>
-                                                <span>→</span>
-                                                <span className="editable" onClick={() => openEdit(`Edit Break ${i + 1} End`, brk.end, daySegments[i + 1].id, 'seg_start')}>
-                                                    {displayTime(brk.end, use12h)}
-                                                </span>
-                                                <span className="break-duration">{minutesToHM(brk.duration)}</span>
+                                ) : (
+                                    <div>
+                                        {/* Start time */}
+                                        <div className="log-row log-start">
+                                            <span className="log-label">Started</span>
+                                            <span className="log-value editable" onClick={() => openEdit('Edit Start Time', startTime, daySegments[0].id, 'seg_start')}>
+                                                {displayTime(startTime, use12h)}
                                             </span>
                                         </div>
-                                    ))}
 
-                                    {/* End time */}
-                                    {endTime && (
-                                        <div className="log-row log-end">
-                                            <span className="log-label">Ended</span>
-                                            <span className="log-value editable" onClick={() => openEdit('Edit End Time', endTime, daySegments[daySegments.length - 1].id, 'seg_end')}>
-                                                {displayTime(endTime, use12h)}
-                                            </span>
+                                        {/* Breaks */}
+                                        {breaks.map((brk, i) => (
+                                            <div key={i} className="break-row">
+                                                <span className="break-label">Break {i + 1}</span>
+                                                <span className="break-times">
+                                                    <span className="editable" onClick={() => openEdit(`Edit Break ${i + 1} Start`, brk.start, daySegments[i].id, 'seg_end')}>
+                                                        {displayTime(brk.start, use12h)}
+                                                    </span>
+                                                    <span>→</span>
+                                                    <span className="editable" onClick={() => openEdit(`Edit Break ${i + 1} End`, brk.end, daySegments[i + 1].id, 'seg_start')}>
+                                                        {displayTime(brk.end, use12h)}
+                                                    </span>
+                                                    <span className="break-duration">{minutesToHM(brk.duration)}</span>
+                                                </span>
+                                            </div>
+                                        ))}
+
+                                        {/* End time */}
+                                        {endTime && (
+                                            <div className="log-row log-end">
+                                                <span className="log-label">Ended</span>
+                                                <span className="log-value editable" onClick={() => openEdit('Edit End Time', endTime, daySegments[daySegments.length - 1].id, 'seg_end')}>
+                                                    {displayTime(endTime, use12h)}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <div className="log-divider" />
+                                        <div className="log-row log-total">
+                                            <span className="log-label">Total Worked</span>
+                                            <span className="log-value">{minutesToHM(dayMins)}</span>
                                         </div>
-                                    )}
-
-                                    <div className="log-divider" />
-                                    <div className="log-row log-total">
-                                        <span className="log-label">Total Worked</span>
-                                        <span className="log-value">{minutesToHM(dayMins)}</span>
                                     </div>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Right: Week Panel */}
+                    <aside className="week-section">
+                        <div className="card week-card">
+                            <div className="card-header">
+                                <h2>Week View</h2>
+                                <div className="week-nav">
+                                    <button className="btn-icon" onClick={prevWeek} title="Previous week">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                                    </button>
+                                    <span className="week-label">{formatWeekRange(selectedWeekMonday)}</span>
+                                    <button className="btn-icon" onClick={nextWeek} title="Next week">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                                    </button>
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                </section>
-
-                {/* Right: Week Panel */}
-                <aside className="week-section">
-                    <div className="card week-card">
-                        <div className="card-header">
-                            <h2>Week View</h2>
-                            <div className="week-nav">
-                                <button className="btn-icon" onClick={prevWeek} title="Previous week">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-                                </button>
-                                <span className="week-label">{formatWeekRange(selectedWeekMonday)}</span>
-                                <button className="btn-icon" onClick={nextWeek} title="Next week">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-                                </button>
                             </div>
-                        </div>
 
-                        <div className="day-pills">
-                            {FULL_DAY_NAMES.map((name, i) => {
-                                const dateStr = addDays(selectedWeekMonday, i);
-                                const segs = weekByDay[dateStr];
-                                const hasData = segs && segs.length > 0;
-                                const mins = hasData ? calcDayMinutes(segs) : 0;
-                                const isActive = dateStr === selectedDate;
-                                const isTodayPill = dateStr === today;
-                                return (
-                                    <div key={i} className={`day-pill${isActive ? ' active' : ''}${isTodayPill ? ' today' : ''}${hasData ? ' has-data' : ''}`} onClick={() => selectDay(dateStr)}>
-                                        <span className="day-pill-name">{name}</span>
-                                        <span className="day-pill-hours">{hasData ? minutesToHM(mins) : '—'}</span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        <div className="week-summary">
-                            <div className="summary-item">
-                                <span className="summary-label">Weekly Total</span>
-                                <span className="summary-value">{minutesToHM(weekTotalMins)}</span>
+                            <div className="day-pills">
+                                {FULL_DAY_NAMES.map((name, i) => {
+                                    const dateStr = addDays(selectedWeekMonday, i);
+                                    const segs = weekByDay[dateStr];
+                                    const hasData = segs && segs.length > 0;
+                                    const mins = hasData ? calcDayMinutes(segs) : 0;
+                                    const isActive = dateStr === selectedDate;
+                                    const isTodayPill = dateStr === today;
+                                    return (
+                                        <div key={i} className={`day-pill${isActive ? ' active' : ''}${isTodayPill ? ' today' : ''}${hasData ? ' has-data' : ''}`} onClick={() => selectDay(dateStr)}>
+                                            <span className="day-pill-name">{name}</span>
+                                            <span className="day-pill-hours">{hasData ? minutesToHM(mins) : '—'}</span>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                            <div className="summary-item">
-                                <span className="summary-label">Days Worked</span>
-                                <span className="summary-value">{daysWorkedCount}</span>
-                            </div>
-                        </div>
 
-                        <button className="btn btn-outline-danger btn-full" onClick={() => setConfirmModal(true)}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
-                            Clear This Week
-                        </button>
-                    </div>
-                </aside>
-            </main>
+                            <div className="week-summary">
+                                <div className="summary-item">
+                                    <span className="summary-label">Weekly Total</span>
+                                    <span className="summary-value">{minutesToHM(weekTotalMins)}</span>
+                                </div>
+                                <div className="summary-item">
+                                    <span className="summary-label">Days Worked</span>
+                                    <span className="summary-value">{daysWorkedCount}</span>
+                                </div>
+                            </div>
+
+                            <button className="btn btn-outline-danger btn-full" onClick={() => setConfirmModal(true)}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                                Clear This Week
+                            </button>
+                        </div>
+                    </aside>
+                </main>
+            )}
 
             {/* Edit Modal */}
             {editModal && (
